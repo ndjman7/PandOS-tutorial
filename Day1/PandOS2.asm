@@ -19,7 +19,7 @@
     DD  2880
     DB  0,  0,  0x29
     DD  0xffffffff
-    DB  "HELLO-OS   "
+    DB  "PANDO-OS   "
     DB  "FAT12   "
     RESB    18
 
@@ -33,7 +33,7 @@
 
 ; 메시지 부분
     DB  0x0a,   0x0a    ; 줄 바꿈 2개
-    DB  "hello, world"
+    DB  "Welcome to PandOS"
     DB  0x0a
     DB  0               ; 줄 바꿈
 
