@@ -1,0 +1,11 @@
+# Mac
+.DS_Store
+
+*.o
+*.bin
+*.sys
+*.elf
+*.a
+*.img
+
+tools/makefont/makefont
