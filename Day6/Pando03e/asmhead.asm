@@ -1,4 +1,4 @@
-; haribote-os boot asm
+; pando-os boot asm
 ; TAB=4
 
 BOTPAK	EQU		0x00280000		; bootpack의 로드 장소
@@ -33,9 +33,9 @@ VRAM	EQU		0x0ff8			; 그래픽 버퍼의 개시 번지
 		MOV		[LEDS],AL
 
 ; PIC가 일절의 인터럽트를 받아들이지 않게 한다
-;	AT호환기의 사양에서는 PIC의 초기화를 한다면,
-;	이것들을 CLI앞에 해 두지 않으면 이따금 행업한다
-;	PIC의 초기화는 나중에 한다
+; AT호환기의 사양에서는 PIC의 초기화를 한다면,
+; 이것들을 CLI앞에 해 두지 않으면 이따금 행업한다
+;PIC의 초기화는 나중에 한다
 
 		MOV		AL,0xff
 		OUT		0x21,AL
@@ -56,21 +56,21 @@ VRAM	EQU		0x0ff8			; 그래픽 버퍼의 개시 번지
 		jmp 	set_gdt
 
 waitkbdout:
-		IN		 AL,0x64
-		AND		 AL,0x02
+		IN		 AL, 0x64
+		AND		 AL, 0x02
 		IN		 AL, 0x60 	; 빈 데이터 read(수신 버퍼가 나쁜짓을 못하게)
-		JNZ		waitkbdout	; AND결과가 0이 아니면 waitkbdout에
+		JNZ		 waitkbdout	; AND결과가 0이 아니면 waitkbdout에
 		RET
 
 set_gdt: ;b *0x824b
 ; 프로텍트 모드 이행
 
 ;		LGDT	[GDTR0]			; 잠정 GDT를 설정
-        cli ; 1. disable interrupts
-        lgdt [GDTR0] ; 2. load the GDT descriptor
-        mov eax, cr0
-        or eax, 0x1 ; 3. set 32-bit mode bit in cr0
-        mov cr0, eax
+        cli                  ; 1. disable interrupts
+        lgdt    [GDTR0]      ; 2. load the GDT descriptor
+        mov     eax, cr0
+        or      eax, 0x1     ; 3. set 32-bit mode bit in cr0
+        mov     cr0, eax
 ;		MOV		EAX,CR0
 ;		AND		EAX, 0x7fffffff	; bit31를 0으로 한다(페이징 금지를 위해)
 ;		OR		EAX, 0x00000001	; bit0를 1로 한다(프로텍트 모드 이행이므로)
@@ -93,48 +93,10 @@ pipelineflush: ;0x8252
 		MOV		ECX,512*1024/4
 		CALL	memcpy
 
-; 하는 김에 디스크 데이터도 본래의 위치에 전송
+        mov     ebp, 0x00400000     ; 6. udpate the stack right at the top of the free space
+        mov     esp, ebp
 
-; 우선은 boot sector로부터
-
-		MOV		ESI, 0x7c00	; 전송원
-		MOV		EDI, DSKCAC	; 전송처
-		MOV		ECX,512/4
-		CALL	memcpy
-
-; 나머지 전부
-
-		MOV		ESI, DSKCAC0+512; 전송원
-		MOV		EDI, DSKCAC+512	; 전송처
-		MOV		ECX,0
-		MOV		CL,BYTE [CYLS]
-		IMUL	ECX,512*18*2/4		; 실린더수로부터 바이트수/4에 변환
-		SUB		ECX,512/4	; IPL분만큼 공제한다
-		CALL	memcpy
-
-; asmhead로 해야 하는 것은 전부 다 했으므로,
-;	나머지는 bootpack에 맡긴다
-
-; bootpack의 기동
-
-		MOV		EBX,BOTPAK
-		MOV		ECX,[EBX+16]
-		ADD		ECX, 3		; ECX += 3;
-		SHR		ECX, 2		; ECX /= 4;
-;		JZ		skip		; 전송 해야 할 것이 없다 0x82ca
-		jmp		skip		; 전송 해야 할 것이 없다 0x82ca
-		MOV		ESI,[EBX+20]	; 전송원
-		ADD		ESI,EBX
-		MOV		EDI,[EBX+12]	; 전송처
-		CALL	memcpy
-skip:
-        mov ebp, 0x90000 ; 6. update the stack right at the top of the free space
-        mov esp, ebp
-
-;		MOV		ESP,[EBX+12]	; 스택 초기치 0x82d9
-;		call	DWORD 2*8:HariMain
-;		jmp		DWORD 2*8:0x0000001b		
-		jmp		BOTPAK
+        jmp     DWORD 2*8:BOTPAK
 
 memcpy:
 		MOV		EAX,[ESI]
@@ -149,8 +111,6 @@ memcpy:
 		ALIGNB	16
 GDT0:
 		RESB	8			; null selector
-;		DW		0xffff, 0x0000, 0x9200, 0x00cf	; read/write 가능 세그먼트(segment) 32bit
-;		DW		0xffff, 0x0000, 0x9a28, 0x0047	; 실행 가능 세그먼트(segment) 32 bit(bootpack용)
 
 gdt_data:
         dw 0xffff
@@ -175,5 +135,5 @@ GDTR0:
 
 		ALIGNB	16
 
-;times 512 - ($-$$) db 0 ; 0x7dfe까지를 0x00로 채우는 명령
+times 512 - ($-$$) db 0 ; 0x7dfe까지를 0x00로 채우는 명령
 bootpack:
