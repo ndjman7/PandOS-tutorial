@@ -26,7 +26,7 @@ void HariMain(void)
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 
 	for (;;) {
-		io_hlt();
+		io_cli();
         if (keybuf.flag == 0) {
             io_stihlt();
         } else {
