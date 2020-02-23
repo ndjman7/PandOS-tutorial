@@ -20,6 +20,7 @@ void HariMain(void)
     io_out8(PIC1_IMR, 0xef);
 
     init_keyboard();
+    enable_mouse(&mdec);
 
     init_palette(); /* 팔레트 설정 */
     init_screen(binfo->vram, binfo->scrnx, binfo->scrny);
@@ -30,7 +31,9 @@ void HariMain(void)
     sprintf(s, "(%d, %d)", mx, my);
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 
-    enable_mouse(&mdec);
+    i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
+    sprintf(s, "memory %dMB", i);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 
 	for (;;) {
 		io_cli();
@@ -122,5 +125,27 @@ unsigned int memtest(unsigned int start, unsigned int end)
         store_cr0(cr0);
     }
 
+    return i;
+}
+
+unsigned int memtest_sub(unsigned int start, unsigned int end)
+{
+    unsigned int i, *p, old, pat0 = 0xaa55aa55, pat1 = 0x55aa55aa;
+    for (i = start; i <= end; i += 0x1000) {
+        p = (unsigned int *) (i + 0xffc);
+        old = *p;           /* 조작 전의 값을 기억해 둔다. */
+        *p = pat0;          /* 시험 삼아 서 본다. */
+        *p ^= 0xffffffff;   /* 그리고 그것을 반전해 본다. */
+        if (*p != pat1) {   /* 반전이 되었는가? */
+not_memory:
+            *p = old;
+            break;
+        }
+        *p ^= 0xffffffff;   /* 한 번 더 반전해 본다. */
+        if (*p != pat0) {   /* 처음대로 돌아갔는가? */
+            goto not_memory;
+        }
+        *p = old;           /* 조작한 값을 처음 값으로 되돌린다. */
+    }
     return i;
 }
